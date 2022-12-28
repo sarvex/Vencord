@@ -17,7 +17,7 @@
 */
 
 import { Devs } from "@utils/constants";
-import definePlugin from "@utils/types";
+import definePlugin, { OptionType } from "@utils/types";
 
 import { Player } from "./PlayerComponent";
 
@@ -54,5 +54,13 @@ export default definePlugin({
         }
     ],
 
-    renderPlayer: () => <Player />
+    renderPlayer: () => <Player />,
+
+    options: {
+        useSpotifyUris: {
+            type: OptionType.BOOLEAN,
+            description: "Open Spotify URIs instead of Spotify URLs. Will only work if you have Spotify installed and might not work on all platforms",
+            default: false
+        }
+    }
 });

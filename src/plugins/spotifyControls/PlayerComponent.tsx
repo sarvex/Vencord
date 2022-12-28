@@ -22,7 +22,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
 import { Link } from "@components/Link";
 import { debounce } from "@utils/debounce";
-import { classes, LazyComponent } from "@utils/misc";
+import { classes, copyWithToast, LazyComponent } from "@utils/misc";
 import { filters, find, findByCodeLazy } from "@webpack";
 import { ContextMenu, FluxDispatcher, Forms, Menu, React, useEffect, useState } from "@webpack/common";
 
@@ -231,6 +231,38 @@ function AlbumContextMenu({ track }: { track: Track; }) {
     );
 }
 
+function CopyContextMenu({ name, path }: { name: string; path: string; }) {
+    const copyId = `spotify-copy-${name}`;
+    const openId = `spotify-open-${name}`;
+
+    return (
+        <Menu.ContextMenu
+            navId={`spotify-${name}-menu`}
+            onClose={() => FluxDispatcher.dispatch({ type: "CONTEXT_MENU_CLOSE" })}
+            aria-label={`Spotify ${name} Menu`}
+        >
+            <Menu.MenuItem
+                key={copyId}
+                id={copyId}
+                label={`Copy ${name} Link`}
+                action={() => copyWithToast("https://open.spotify.com" + path)}
+            />
+            <Menu.MenuItem
+                key={openId}
+                id={openId}
+                label={`Open ${name} in Spotify`}
+                action={() => SpotifyStore.openExternal(path)}
+            />
+        </Menu.ContextMenu>
+    );
+}
+
+function makeContextMenu(name: string, path: string) {
+    return (e: React.MouseEvent<HTMLElement, MouseEvent>) =>
+        ContextMenu.open(e, () => <CopyContextMenu name={name} path={path} />);
+}
+
+
 function Info({ track }: { track: Track; }) {
     const img = track?.album?.image;
 
@@ -244,9 +276,7 @@ function Info({ track }: { track: Track; }) {
                     src={img.url}
                     alt="Album Image"
                     onClick={() => setCoverExpanded(!coverExpanded)}
-                    onContextMenu={e => {
-                        ContextMenu.open(e, () => <AlbumContextMenu track={track} />);
-                    }}
+                    onContextMenu={e => ContextMenu.open(e, () => <AlbumContextMenu track={track} />)}
                 />
             )}
         </>
@@ -271,6 +301,7 @@ function Info({ track }: { track: Track; }) {
                     onClick={track.id ? () => {
                         SpotifyStore.openExternal(`/track/${track.id}`);
                     } : void 0}
+                    onContextMenu={track.id ? makeContextMenu("Song", `/track/${track.id}`) : void 0}
                 >
                     {track.name}
                 </Forms.FormText>
@@ -285,6 +316,7 @@ function Info({ track }: { track: Track; }) {
                                     href={`https://open.spotify.com/artist/${a.id}`}
                                     style={{ fontSize: "inherit" }}
                                     title={a.name}
+                                    onContextMenu={makeContextMenu("Artist", `/artist/${a.id}`)}
                                 >
                                     {a.name}
                                 </Link>
@@ -303,6 +335,7 @@ function Info({ track }: { track: Track; }) {
                             disabled={!track.album.id}
                             style={{ fontSize: "inherit" }}
                             title={track.album.name}
+                            onContextMenu={makeContextMenu("Album", `/album/${track.album.id}`)}
                         >
                             {track.album.name}
                         </Link>
@@ -345,12 +378,7 @@ export function Player() {
         return null;
 
     return (
-        <ErrorBoundary fallback={() => (
-            <>
-                <Forms.FormText>Failed to render Spotify Modal :(</Forms.FormText>
-                <Forms.FormText>Check the console for errors</Forms.FormText>
-            </>
-        )}>
+        <ErrorBoundary>
             <div id={cl("player")}>
                 <Info track={track} />
                 <SeekBar />
